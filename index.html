@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Consulta Registros</title>
+  <title>Consulta Registros por Mercado</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
   <style>
     body { background-color: #f8f9fa; }
@@ -32,6 +32,13 @@
       </form>
     </div>
 
+    <!-- Selector de Mercado -->
+    <div id="mercadoSelectorBox" style="display:none;" class="mb-4">
+      <label for="mercadoSelect" class="form-label">Seleccione Mercado:</label>
+      <select id="mercadoSelect" class="form-select" style="max-width: 300px;"></select>
+      <button id="cargarMercadoBtn" class="btn btn-primary mt-2">Cargar Registros</button>
+    </div>
+
     <!-- Tabla y contenido -->
     <div id="contentBox" style="display:none;">
       <div class="mb-3 text-end">
@@ -48,11 +55,16 @@
   </div>
 
   <script>
-    const scriptURL = 'https://script.google.com/macros/s/AKfycbx-echRnCqYjR0YgbJthgC0_iSX1hcAMHIDYOwiROAnlFKiJ0bUf4CGbPcB1IF37QreMA/exec'; // Reemplaza aquí con tu URL Apps Script
+    const scriptURL = 'https://script.google.com/macros/s/AKfycbx-echRnCqYjR0YgbJthgC0_iSX1hcAMHIDYOwiROAnlFKiJ0bUf4CGbPcB1IF37QreMA/exec'; // Cambia aquí por tu URL Apps Script
 
     const loginBox = document.getElementById('loginBox');
     const loginForm = document.getElementById('loginForm');
     const loginMsg = document.getElementById('loginMsg');
+
+    const mercadoSelectorBox = document.getElementById('mercadoSelectorBox');
+    const mercadoSelect = document.getElementById('mercadoSelect');
+    const cargarMercadoBtn = document.getElementById('cargarMercadoBtn');
+
     const contentBox = document.getElementById('contentBox');
     const registrosTable = document.getElementById('registrosTable');
     const statusMsg = document.getElementById('statusMsg');
@@ -62,8 +74,76 @@
     let currentRol = null;
     let registrosData = [];
     let headers = [];
+    let claveActual = "";
 
-    // Función para construir tabla
+    loginForm.addEventListener('submit', e => {
+      e.preventDefault();
+      loginMsg.textContent = '';
+
+      const usuario = document.getElementById('usuario').value.trim();
+      const clave = document.getElementById('clave').value.trim();
+
+      fetch(`${scriptURL}?usuario=${encodeURIComponent(usuario)}&clave=${encodeURIComponent(clave)}&accion=mercados`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.error) {
+            loginMsg.textContent = data.error;
+            return;
+          }
+
+          currentUser = usuario;
+          claveActual = clave;
+          currentRol = null;
+          registrosData = [];
+          headers = [];
+
+          // Cargar lista mercados en select
+          mercadoSelect.innerHTML = '';
+          data.mercados.forEach(m => {
+            const option = document.createElement('option');
+            option.value = m;
+            option.textContent = m;
+            mercadoSelect.appendChild(option);
+          });
+
+          loginBox.style.display = 'none';
+          mercadoSelectorBox.style.display = 'block';
+          contentBox.style.display = 'none';
+        })
+        .catch(() => {
+          loginMsg.textContent = 'Error al conectar con el servidor';
+        });
+    });
+
+    cargarMercadoBtn.addEventListener('click', () => {
+      const mercadoElegido = mercadoSelect.value;
+      if (!mercadoElegido) return;
+
+      statusMsg.textContent = 'Cargando registros...';
+
+      fetch(`${scriptURL}?usuario=${encodeURIComponent(currentUser)}&clave=${encodeURIComponent(claveActual)}&mercado=${encodeURIComponent(mercadoElegido)}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.error) {
+            statusMsg.textContent = '❌ ' + data.error;
+            return;
+          }
+
+          currentRol = data.rol;
+          registrosData = data.registros;
+          headers = registrosData.length > 0 ? Object.keys(registrosData[0]).filter(k => k !== 'id') : [];
+
+          mercadoSelectorBox.style.display = 'none';
+          contentBox.style.display = 'block';
+
+          buildTable(headers, registrosData, currentRol === 'admin');
+          statusMsg.textContent = '';
+        })
+        .catch(() => {
+          statusMsg.textContent = '❌ Error al cargar registros';
+        });
+    });
+
     function buildTable(headers, registros, editable) {
       const thead = registrosTable.querySelector('thead');
       const tbody = registrosTable.querySelector('tbody');
@@ -103,84 +183,51 @@
       });
     }
 
-    // Detecta cambios en inputs y guarda al backend
     function onInputChange(e) {
       const input = e.target;
       const id = input.dataset.id;
       const field = input.dataset.field;
       const valor = input.value;
 
-      // Actualizar en registrosData localmente
       const reg = registrosData.find(r => r.id == id);
       if (reg) {
         reg[field] = valor;
       }
 
-      // Guardar en backend
       statusMsg.textContent = 'Guardando...';
 
       fetch(scriptURL, {
         method: 'POST',
         body: JSON.stringify({
           usuario: currentUser,
-          clave: document.getElementById('clave').value,
+          clave: claveActual,
           id: id,
           [field]: valor
         }),
         headers: { 'Content-Type': 'application/json' }
       })
-      .then(res => res.json())
-      .then(res => {
-        if (res.error) {
-          statusMsg.textContent = '❌ ' + res.error;
-        } else {
-          statusMsg.textContent = '✅ Cambios guardados';
-          setTimeout(() => statusMsg.textContent = '', 3000);
-        }
-      })
-      .catch(() => {
-        statusMsg.textContent = '❌ Error guardando cambios';
-      });
-    }
-
-    // Login
-    loginForm.addEventListener('submit', e => {
-      e.preventDefault();
-      loginMsg.textContent = '';
-
-      const usuario = document.getElementById('usuario').value.trim();
-      const clave = document.getElementById('clave').value.trim();
-
-      fetch(`${scriptURL}?usuario=${encodeURIComponent(usuario)}&clave=${encodeURIComponent(clave)}`)
         .then(res => res.json())
-        .then(data => {
-          if (data.error) {
-            loginMsg.textContent = data.error;
-            return;
+        .then(res => {
+          if (res.error) {
+            statusMsg.textContent = '❌ ' + res.error;
+          } else {
+            statusMsg.textContent = '✅ Cambios guardados';
+            setTimeout(() => (statusMsg.textContent = ''), 3000);
           }
-
-          currentUser = usuario;
-          currentRol = data.rol;
-          registrosData = data.registros;
-          headers = registrosData.length > 0 ? Object.keys(registrosData[0]).filter(k => k !== 'id') : [];
-
-          loginBox.style.display = 'none';
-          contentBox.style.display = 'block';
-
-          buildTable(headers, registrosData, currentRol === 'admin');
         })
         .catch(() => {
-          loginMsg.textContent = 'Error al conectar con el servidor';
+          statusMsg.textContent = '❌ Error guardando cambios';
         });
-    });
+    }
 
-    // Logout
     logoutBtn.addEventListener('click', () => {
       currentUser = null;
       currentRol = null;
       registrosData = [];
       headers = [];
+      claveActual = '';
       loginBox.style.display = 'block';
+      mercadoSelectorBox.style.display = 'none';
       contentBox.style.display = 'none';
       loginForm.reset();
       statusMsg.textContent = '';
