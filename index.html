@@ -197,11 +197,11 @@
         if (rol === 'admin') {
   input = document.createElement('input');
   input.type = 'text';
-  input.value = valor;
+  input.value = mapearDescripcion(campo, valor);
   input.className = 'form-control';
   input.dataset.campo = campo;
 } else {
-  // Mostrar como imagen si es un enlace de imagen
+  // Mostrar imagen si es link
   if (valor && typeof valor === 'string' && valor.startsWith('http') && (valor.includes('.jpg') || valor.includes('.png') || valor.includes('.jpeg'))) {
     const img = document.createElement('img');
     img.src = valor;
@@ -211,7 +211,7 @@
     input = img;
   } else {
     input = document.createElement('p');
-    input.textContent = valor;
+    input.textContent = mapearDescripcion(campo, valor);
     input.className = 'form-control-plaintext';
   }
 }
