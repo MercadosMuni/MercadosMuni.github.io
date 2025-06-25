@@ -56,12 +56,12 @@
           <tbody></tbody>
         </table>
       </div>
-      <div id="statusMsg" class="mt-3"></div>
+      <div id="statusMsg" class="mt-3 text-center text-muted"></div>
     </div>
   </div>
 
   <script>
-    const scriptURL = 'https://script.google.com/macros/s/AKfycbx-echRnCqYjR0YgbJthgC0_iSX1hcAMHIDYOwiROAnlFKiJ0bUf4CGbPcB1IF37QreMA/exec'; // Reemplaza con tu URL Apps Script
+    const scriptURL = 'https://script.google.com/macros/s/AKfycbx-echRnCqYjR0YgbJthgC0_iSX1hcAMHIDYOwiROAnlFKiJ0bUf4CGbPcB1IF37QreMA/exec'; // ← REEMPLAZA esto con tu URL del Apps Script
 
     const loginBox = document.getElementById('loginBox');
     const loginForm = document.getElementById('loginForm');
@@ -238,17 +238,29 @@
       loginMsg.textContent = '';
     });
 
-    // Buscador dinámico
+    // Buscador avanzado
     searchInput.addEventListener('input', function () {
-      const texto = this.value.toLowerCase();
+      const texto = normalizar(this.value);
       const filas = registrosTable.querySelectorAll('tbody tr');
+      let coincidencias = 0;
 
       filas.forEach(fila => {
         const celdas = fila.querySelectorAll('td');
-        const coincide = Array.from(celdas).some(td => td.textContent.toLowerCase().includes(texto));
+        const coincide = Array.from(celdas).some(td =>
+          normalizar(td.textContent).includes(texto)
+        );
         fila.style.display = coincide ? '' : 'none';
+        if (coincide) coincidencias++;
       });
+
+      statusMsg.textContent = coincidencias === 0 && texto !== ''
+        ? '🔍 No se encontraron coincidencias.'
+        : '';
     });
+
+    function normalizar(texto) {
+      return texto.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    }
   </script>
 </body>
 </html>
