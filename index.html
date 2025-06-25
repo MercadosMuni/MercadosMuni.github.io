@@ -1,269 +1,223 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Consulta Registros por Mercado</title>
+  <title>Administrador de Registros</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
   <style>
-    body { background-color: #f8f9fa; }
-    .container { max-width: 1000px; margin-top: 30px; }
+    body { background-color: #f5f5f5; }
+    .container { max-width: 1200px; margin-top: 30px; }
     table input { width: 100%; border: none; background: transparent; }
     table input:focus { outline: 1px solid #0d6efd; background: #e9f0ff; }
+    #detalleModal .modal-body label { font-weight: bold; margin-top: 0.5rem; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h2 class="text-center mb-4">Consulta y Edición de Registros</h2>
+<div class="container">
+  <h2 class="text-center mb-4">Panel de Administración</h2>
 
-    <!-- Login -->
-    <div id="loginBox">
-      <form id="loginForm" class="mb-4">
-        <div class="mb-3">
-          <label for="usuario" class="form-label">Usuario</label>
-          <input type="text" id="usuario" class="form-control" required />
-        </div>
-        <div class="mb-3">
-          <label for="clave" class="form-label">Clave</label>
-          <input type="password" id="clave" class="form-control" required />
-        </div>
-        <button type="submit" class="btn btn-primary w-100">Ingresar</button>
-        <div id="loginMsg" class="mt-2 text-danger"></div>
-      </form>
-    </div>
-
-    <!-- Selector de Mercado -->
-    <div id="mercadoSelectorBox" style="display:none;" class="mb-4">
-      <label for="mercadoSelect" class="form-label">Seleccione Mercado:</label>
-      <select id="mercadoSelect" class="form-select" style="max-width: 300px;"></select>
-      <button id="cargarMercadoBtn" class="btn btn-primary mt-2">Cargar Registros</button>
-    </div>
-
-    <!-- Buscador -->
-    <div class="mb-3" id="searchBox" style="display:none;">
-      <label class="form-label">Buscar en registros:</label>
-      <input type="text" class="form-control" id="searchInput" placeholder="Escribe para filtrar...">
-    </div>
-
-    <!-- Tabla y contenido -->
-    <div id="contentBox" style="display:none;">
-      <div class="mb-3 text-end">
-        <button id="logoutBtn" class="btn btn-secondary">Cerrar sesión</button>
+  <!-- Login -->
+  <div id="loginBox">
+    <form id="loginForm">
+      <div class="mb-3">
+        <label>Usuario</label>
+        <input type="text" id="usuario" class="form-control" required />
       </div>
-      <div class="table-responsive" style="max-height: 70vh; overflow-y: auto;">
-        <table class="table table-striped table-bordered table-hover" id="registrosTable">
-          <thead class="table-dark"></thead>
-          <tbody></tbody>
-        </table>
+      <div class="mb-3">
+        <label>Clave</label>
+        <input type="password" id="clave" class="form-control" required />
       </div>
-      <div id="statusMsg" class="mt-3 text-center text-muted"></div>
-    </div>
+      <button type="submit" class="btn btn-primary w-100">Ingresar</button>
+      <div id="loginMsg" class="text-danger mt-2"></div>
+    </form>
   </div>
 
-  <script>
-    const scriptURL = 'https://script.google.com/macros/s/AKfycbx-echRnCqYjR0YgbJthgC0_iSX1hcAMHIDYOwiROAnlFKiJ0bUf4CGbPcB1IF37QreMA/exec'; // ← Reemplaza con tu URL del Apps Script
+  <!-- Filtro de mercado -->
+  <div id="mercadoBox" style="display:none">
+    <label>Seleccionar Mercado:</label>
+    <select id="mercadoSelect" class="form-select mb-3" style="max-width:300px"></select>
+    <button id="btnCargar" class="btn btn-success mb-3">Cargar Registros</button>
+    <input id="buscador" class="form-control mb-3" placeholder="Buscar...">
+  </div>
 
-    const loginBox = document.getElementById('loginBox');
-    const loginForm = document.getElementById('loginForm');
-    const loginMsg = document.getElementById('loginMsg');
+  <!-- Tabla -->
+  <div id="tablaBox" style="display:none">
+    <div class="table-responsive">
+      <table class="table table-striped table-hover" id="tabla">
+        <thead class="table-dark"></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div id="msgEstado" class="text-muted mt-2 text-center small"></div>
+  </div>
+</div>
 
-    const mercadoSelectorBox = document.getElementById('mercadoSelectorBox');
-    const mercadoSelect = document.getElementById('mercadoSelect');
-    const cargarMercadoBtn = document.getElementById('cargarMercadoBtn');
+<!-- Modal Detalle -->
+<div class="modal fade" id="detalleModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Detalle del Registro</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="detalleForm" class="row g-3"></form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+        <button type="submit" form="detalleForm" class="btn btn-primary" id="btnGuardar">Guardar Cambios</button>
+      </div>
+    </div>
+  </div>
+</div>
 
-    const searchBox = document.getElementById('searchBox');
-    const searchInput = document.getElementById('searchInput');
+<script>
+const scriptURL = 'https://script.google.com/macros/s/AKfycbx-echRnCqYjR0YgbJthgC0_iSX1hcAMHIDYOwiROAnlFKiJ0bUf4CGbPcB1IF37QreMA/exec';
+let usuario = '', clave = '', rol = '', descripciones = {}, registros = [], idActual = null;
 
-    const contentBox = document.getElementById('contentBox');
-    const registrosTable = document.getElementById('registrosTable');
-    const statusMsg = document.getElementById('statusMsg');
-    const logoutBtn = document.getElementById('logoutBtn');
+const camposMostrar = [
+  'codigo_tarjeta','gl','nombre','mercado','nombre_comercial','tipo_infraestructura','ubicacion_puesto'
+];
 
-    let currentUser = null;
-    let currentRol = null;
-    let registrosData = [];
-    let headers = [];
-    let claveActual = "";
+const camposDesc = {
+  'mercado': 'mercados',
+  'tipo_negocio': 'tipos_negocio',
+  'sector': 'sectores',
+  'tipo_tarjeta': 'tipos_tarjeta'
+};
 
-    loginForm.addEventListener('submit', e => {
-      e.preventDefault();
-      loginMsg.textContent = '';
+function mapearDescripcion(campo, valor) {
+  const tabla = camposDesc[campo];
+  return (tabla && descripciones[tabla]) ? descripciones[tabla][valor] || valor : valor;
+}
 
-      const usuario = document.getElementById('usuario').value.trim();
-      const clave = document.getElementById('clave').value.trim();
+document.getElementById('loginForm').addEventListener('submit', e => {
+  e.preventDefault();
+  usuario = document.getElementById('usuario').value;
+  clave = document.getElementById('clave').value;
 
-      fetch(`${scriptURL}?usuario=${encodeURIComponent(usuario)}&clave=${encodeURIComponent(clave)}&accion=mercados`)
-        .then(res => res.json())
-        .then(data => {
-          if (data.error) {
-            loginMsg.textContent = data.error;
-            return;
-          }
-
-          currentUser = usuario;
-          claveActual = clave;
-          currentRol = null;
-          registrosData = [];
-          headers = [];
-
-          mercadoSelect.innerHTML = '';
-          data.mercados.forEach(m => {
-            const option = document.createElement('option');
-            option.value = m.codigo;
-            option.textContent = m.nombre;
-            mercadoSelect.appendChild(option);
-          });
-
-          loginBox.style.display = 'none';
-          mercadoSelectorBox.style.display = 'block';
-        })
-        .catch(() => {
-          loginMsg.textContent = 'Error al conectar con el servidor';
-        });
-    });
-
-    cargarMercadoBtn.addEventListener('click', () => {
-      const mercadoElegido = mercadoSelect.value;
-      if (!mercadoElegido) return;
-
-      statusMsg.textContent = 'Cargando registros...';
-
-      fetch(`${scriptURL}?usuario=${encodeURIComponent(currentUser)}&clave=${encodeURIComponent(claveActual)}&mercado=${encodeURIComponent(mercadoElegido)}`)
-        .then(res => res.json())
-        .then(data => {
-          if (data.error) {
-            statusMsg.textContent = '❌ ' + data.error;
-            return;
-          }
-
-          currentRol = data.rol;
-          registrosData = data.registros;
-          headers = registrosData.length > 0 ? Object.keys(registrosData[0]).filter(k => k !== 'id') : [];
-
-          contentBox.style.display = 'block';
-          searchBox.style.display = 'block';
-
-          buildTable(headers, registrosData, currentRol === 'admin');
-          statusMsg.textContent = '';
-        })
-        .catch(() => {
-          statusMsg.textContent = '❌ Error al cargar registros';
-        });
-    });
-
-    function buildTable(headers, registros, editable) {
-      const thead = registrosTable.querySelector('thead');
-      const tbody = registrosTable.querySelector('tbody');
-
-      thead.innerHTML = '';
-      tbody.innerHTML = '';
-
-      const trHead = document.createElement('tr');
-      headers.forEach(h => {
-        const th = document.createElement('th');
-        th.textContent = h;
-        trHead.appendChild(th);
+  fetch(`${scriptURL}?usuario=${usuario}&clave=${clave}&accion=mercados`)
+    .then(r => r.json())
+    .then(data => {
+      if (data.error) return document.getElementById('loginMsg').textContent = data.error;
+      descripciones = data;
+      const mercadoSel = document.getElementById('mercadoSelect');
+      mercadoSel.innerHTML = '';
+      data.mercados && Object.entries(data.mercados).forEach(([cod, nom]) => {
+        const opt = document.createElement('option');
+        opt.value = cod;
+        opt.textContent = nom;
+        mercadoSel.appendChild(opt);
       });
-      thead.appendChild(trHead);
-
-      registros.forEach(reg => {
-        const tr = document.createElement('tr');
-
-        headers.forEach(h => {
-          const td = document.createElement('td');
-          if (editable) {
-            const input = document.createElement('input');
-            input.value = reg[h] || '';
-            input.dataset.id = reg.id;
-            input.dataset.field = h;
-            input.addEventListener('change', onInputChange);
-            td.appendChild(input);
-          } else {
-            td.textContent = reg[h] || '';
-          }
-          tr.appendChild(td);
-        });
-
-        tbody.appendChild(tr);
-      });
-    }
-
-    function onInputChange(e) {
-      const input = e.target;
-      const id = input.dataset.id;
-      const field = input.dataset.field;
-      const valor = input.value;
-
-      const reg = registrosData.find(r => r.id == id);
-      if (reg) reg[field] = valor;
-
-      statusMsg.textContent = 'Guardando...';
-
-      fetch(scriptURL, {
-        method: 'POST',
-        body: JSON.stringify({
-          usuario: currentUser,
-          clave: claveActual,
-          id: id,
-          [field]: valor
-        }),
-        headers: { 'Content-Type': 'application/json' }
-      })
-        .then(res => res.json())
-        .then(res => {
-          if (res.error) {
-            statusMsg.textContent = '❌ ' + res.error;
-          } else {
-            statusMsg.textContent = '✅ Cambios guardados';
-            setTimeout(() => (statusMsg.textContent = ''), 3000);
-          }
-        })
-        .catch(() => {
-          statusMsg.textContent = '❌ Error guardando cambios';
-        });
-    }
-
-    logoutBtn.addEventListener('click', () => {
-      currentUser = null;
-      currentRol = null;
-      registrosData = [];
-      headers = [];
-      claveActual = '';
-      loginBox.style.display = 'block';
-      mercadoSelectorBox.style.display = 'none';
-      contentBox.style.display = 'none';
-      searchBox.style.display = 'none';
-      loginForm.reset();
-      statusMsg.textContent = '';
-      loginMsg.textContent = '';
+      document.getElementById('loginBox').style.display = 'none';
+      document.getElementById('mercadoBox').style.display = 'block';
     });
+});
 
-    // Buscador funcional con inputs
-    searchInput.addEventListener('input', function () {
-      const texto = normalizar(this.value);
-      const filas = registrosTable.querySelectorAll('tbody tr');
-      let coincidencias = 0;
-
-      filas.forEach(fila => {
-        const celdas = fila.querySelectorAll('td');
-        const coincide = Array.from(celdas).some(td => {
-          const input = td.querySelector('input');
-          const contenido = input ? input.value : td.textContent;
-          return normalizar(contenido).includes(texto);
-        });
-
-        fila.style.display = coincide ? '' : 'none';
-        if (coincide) coincidencias++;
-      });
-
-      statusMsg.textContent = coincidencias === 0 && texto !== ''
-        ? '🔍 No se encontraron coincidencias.'
-        : '';
+document.getElementById('btnCargar').addEventListener('click', () => {
+  const mercado = document.getElementById('mercadoSelect').value;
+  fetch(`${scriptURL}?usuario=${usuario}&clave=${clave}&mercado=${mercado}`)
+    .then(r => r.json())
+    .then(data => {
+      if (data.error) return alert(data.error);
+      rol = data.rol;
+      registros = data.registros;
+      pintarTabla();
     });
+});
 
-    function normalizar(texto) {
-      return texto.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+function pintarTabla() {
+  const thead = document.querySelector('#tabla thead');
+  const tbody = document.querySelector('#tabla tbody');
+  thead.innerHTML = '';
+  tbody.innerHTML = '';
+
+  const trH = document.createElement('tr');
+  camposMostrar.forEach(k => {
+    const th = document.createElement('th');
+    th.textContent = k;
+    trH.appendChild(th);
+  });
+  thead.appendChild(trH);
+
+  registros.forEach(reg => {
+    const tr = document.createElement('tr');
+    tr.addEventListener('click', () => mostrarDetalle(reg));
+    camposMostrar.forEach(k => {
+      const td = document.createElement('td');
+      td.textContent = mapearDescripcion(k, reg[k]);
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+
+  document.getElementById('tablaBox').style.display = 'block';
+}
+
+function mostrarDetalle(reg) {
+  idActual = reg.id;
+  const form = document.getElementById('detalleForm');
+  form.innerHTML = '';
+
+  Object.entries(reg).forEach(([campo, valor]) => {
+    const label = document.createElement('label');
+    label.textContent = campo;
+    const input = document.createElement(rol === 'admin' ? 'input' : 'p');
+    input.className = 'form-control';
+    input.value = mapearDescripcion(campo, valor);
+    input.dataset.campo = campo;
+    if (rol !== 'admin') input.readOnly = true;
+    const div = document.createElement('div');
+    div.className = 'col-md-6';
+    div.appendChild(label);
+    div.appendChild(input);
+    form.appendChild(div);
+  });
+
+  const modal = new bootstrap.Modal(document.getElementById('detalleModal'));
+  modal.show();
+}
+
+document.getElementById('detalleForm').addEventListener('submit', e => {
+  e.preventDefault();
+  if (rol !== 'admin') return;
+  const data = { usuario, clave, id: idActual };
+  [...document.querySelectorAll('#detalleForm [data-campo]')].forEach(el => {
+    data[el.dataset.campo] = el.value;
+  });
+
+  fetch(scriptURL, {
+    method: 'POST',
+    body: JSON.stringify(data),
+    headers: { 'Content-Type': 'application/json' }
+  })
+  .then(r => r.json())
+  .then(resp => {
+    if (resp.error) alert(resp.error);
+    else {
+      const idx = registros.findIndex(r => r.id === idActual);
+      if (idx !== -1) registros[idx] = data;
+      pintarTabla();
+      bootstrap.Modal.getInstance(document.getElementById('detalleModal')).hide();
     }
-  </script>
+  });
+});
+
+// Buscador
+const buscador = document.getElementById('buscador');
+buscador.addEventListener('input', () => {
+  const texto = normalizar(buscador.value);
+  document.querySelectorAll('#tabla tbody tr').forEach(row => {
+    const visible = [...row.cells].some(td => normalizar(td.textContent).includes(texto));
+    row.style.display = visible ? '' : 'none';
+  });
+});
+
+function normalizar(txt) {
+  return txt.toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '');
+}
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
