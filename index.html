@@ -61,7 +61,7 @@
   </div>
 
   <script>
-    const scriptURL = 'https://script.google.com/macros/s/AKfycbx-echRnCqYjR0YgbJthgC0_iSX1hcAMHIDYOwiROAnlFKiJ0bUf4CGbPcB1IF37QreMA/exec'; // ← REEMPLAZA esto con tu URL del Apps Script
+    const scriptURL = 'https://script.google.com/macros/s/AKfycbx-echRnCqYjR0YgbJthgC0_iSX1hcAMHIDYOwiROAnlFKiJ0bUf4CGbPcB1IF37QreMA/exec'; // ← Reemplaza con tu URL del Apps Script
 
     const loginBox = document.getElementById('loginBox');
     const loginForm = document.getElementById('loginForm');
@@ -238,7 +238,7 @@
       loginMsg.textContent = '';
     });
 
-    // Buscador avanzado
+    // Buscador funcional con inputs
     searchInput.addEventListener('input', function () {
       const texto = normalizar(this.value);
       const filas = registrosTable.querySelectorAll('tbody tr');
@@ -247,11 +247,10 @@
       filas.forEach(fila => {
         const celdas = fila.querySelectorAll('td');
         const coincide = Array.from(celdas).some(td => {
-  const contenido = td.querySelector('input') 
-    ? td.querySelector('input').value 
-    : td.textContent;
-  return normalizar(contenido).includes(texto);
-});
+          const input = td.querySelector('input');
+          const contenido = input ? input.value : td.textContent;
+          return normalizar(contenido).includes(texto);
+        });
 
         fila.style.display = coincide ? '' : 'none';
         if (coincide) coincidencias++;
