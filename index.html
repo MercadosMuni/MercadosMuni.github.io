@@ -195,16 +195,27 @@
         label.textContent = campo;
         let input;
         if (rol === 'admin') {
-          input = document.createElement('input');
-          input.type = 'text';
-          input.value = valor;
-          input.className = 'form-control';
-          input.dataset.campo = campo;
-        } else {
-          input = document.createElement('p');
-          input.textContent = valor;
-          input.className = 'form-control-plaintext';
-        }
+  input = document.createElement('input');
+  input.type = 'text';
+  input.value = valor;
+  input.className = 'form-control';
+  input.dataset.campo = campo;
+} else {
+  // Mostrar como imagen si es un enlace de imagen
+  if (valor && typeof valor === 'string' && valor.startsWith('http') && (valor.includes('.jpg') || valor.includes('.png') || valor.includes('.jpeg'))) {
+    const img = document.createElement('img');
+    img.src = valor;
+    img.alt = campo;
+    img.style.maxWidth = '100%';
+    img.className = 'img-thumbnail';
+    input = img;
+  } else {
+    input = document.createElement('p');
+    input.textContent = valor;
+    input.className = 'form-control-plaintext';
+  }
+}
+
         const div = document.createElement('div');
         div.className = 'col-md-6';
         div.appendChild(label);
