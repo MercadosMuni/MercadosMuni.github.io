@@ -246,9 +246,13 @@
 
       filas.forEach(fila => {
         const celdas = fila.querySelectorAll('td');
-        const coincide = Array.from(celdas).some(td =>
-          normalizar(td.textContent).includes(texto)
-        );
+        const coincide = Array.from(celdas).some(td => {
+  const contenido = td.querySelector('input') 
+    ? td.querySelector('input').value 
+    : td.textContent;
+  return normalizar(contenido).includes(texto);
+});
+
         fila.style.display = coincide ? '' : 'none';
         if (coincide) coincidencias++;
       });
