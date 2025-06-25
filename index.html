@@ -11,250 +11,251 @@
     table input { width: 100%; border: none; background: transparent; }
     table input:focus { outline: 1px solid #0d6efd; background: #e9f0ff; }
     #detalleModal .modal-body label { font-weight: bold; margin-top: 0.5rem; }
-    #detalleModal img { max-width: 100%; height: auto; display: block; margin-top: 0.25rem; }
   </style>
 </head>
 <body>
-<div class="container">
-  <h2 class="text-center mb-4">Panel de Administración</h2>
+  <div class="container">
+    <h2 class="text-center mb-4">Panel de Administración</h2>
 
-  <!-- Login -->
-  <div id="loginBox">
-    <form id="loginForm">
-      <div class="mb-3">
-        <label>Usuario</label>
-        <input type="text" id="usuario" class="form-control" required />
-      </div>
-      <div class="mb-3">
-        <label>Clave</label>
-        <input type="password" id="clave" class="form-control" required />
-      </div>
-      <button type="submit" class="btn btn-primary w-100">Ingresar</button>
-      <div id="loginMsg" class="text-danger mt-2"></div>
-    </form>
-  </div>
-
-  <!-- Filtro de mercado -->
-  <div id="mercadoBox" style="display:none">
-    <label>Seleccionar Mercado:</label>
-    <select id="mercadoSelect" class="form-select mb-3" style="max-width:300px"></select>
-    <button id="btnCargar" class="btn btn-success mb-3">Cargar Registros</button>
-    <input id="buscador" class="form-control mb-3" placeholder="Buscar..." />
-  </div>
-
-  <!-- Tabla -->
-  <div id="tablaBox" style="display:none">
-    <div class="table-responsive">
-      <table class="table table-striped table-hover" id="tabla">
-        <thead class="table-dark"></thead>
-        <tbody></tbody>
-      </table>
+    <!-- Login -->
+    <div id="loginBox">
+      <form id="loginForm">
+        <div class="mb-3">
+          <label>Usuario</label>
+          <input type="text" id="usuario" class="form-control" required />
+        </div>
+        <div class="mb-3">
+          <label>Clave</label>
+          <input type="password" id="clave" class="form-control" required />
+        </div>
+        <button type="submit" class="btn btn-primary w-100">Ingresar</button>
+        <div id="loginMsg" class="text-danger mt-2"></div>
+      </form>
     </div>
-    <div id="msgEstado" class="text-muted mt-2 text-center small"></div>
-  </div>
-</div>
 
-<!-- Modal Detalle -->
-<div class="modal fade" id="detalleModal" tabindex="-1">
-  <div class="modal-dialog modal-lg">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Detalle del Registro</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+    <!-- Filtro de mercado -->
+    <div id="mercadoBox" style="display:none">
+      <label>Seleccionar Mercado:</label>
+      <select id="mercadoSelect" class="form-select mb-3" style="max-width:300px"></select>
+      <button id="btnCargar" class="btn btn-success mb-3">Cargar Registros</button>
+      <input id="buscador" class="form-control mb-3" placeholder="Buscar..." />
+    </div>
+
+    <!-- Tabla -->
+    <div id="tablaBox" style="display:none">
+      <div class="table-responsive">
+        <table class="table table-striped table-hover" id="tabla">
+          <thead class="table-dark"></thead>
+          <tbody></tbody>
+        </table>
       </div>
-      <div class="modal-body">
-        <form id="detalleForm" class="row g-3"></form>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-        <button type="submit" form="detalleForm" class="btn btn-primary" id="btnGuardar">Guardar Cambios</button>
-      </div>
+      <div id="msgEstado" class="text-muted mt-2 text-center small"></div>
     </div>
   </div>
-</div>
 
-<script>
-const scriptURL = 'https://script.google.com/macros/s/AKfycbx-echRnCqYjR0YgbJthgC0_iSX1hcAMHIDYOwiROAnlFKiJ0bUf4CGbPcB1IF37QreMA/exec';
-let usuario = '', clave = '', rol = '', descripciones = {}, registros = [], idActual = null;
+  <!-- Modal Detalle -->
+  <div class="modal fade" id="detalleModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Detalle del Registro</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="detalleForm" class="row g-3"></form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+          <button type="submit" form="detalleForm" class="btn btn-primary" id="btnGuardar">Guardar Cambios</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
-const camposMostrar = [
-  'codigo_tarjeta', 'gl', 'nombre', 'mercado', 'nombre_comercial', 'tipo_infraestructura', 'ubicacion_puesto'
-];
+  <script>
+    const scriptURL = 'https://script.google.com/macros/s/AKfycbx-echRnCqYjR0YgbJthgC0_iSX1hcAMHIDYOwiROAnlFKiJ0bUf4CGbPcB1IF37QreMA/exec';
 
-const camposDesc = {
-  'mercado': 'mercados',
-  'tipo_negocio': 'tipos_negocio',
-  'sector': 'sectores',
-  'tipo_tarjeta': 'tipos_tarjeta'
-};
+    let usuario = '', clave = '', rol = '', descripciones = {}, registros = [], idActual = null;
 
-function mapearDescripcion(campo, valor) {
-  const tabla = camposDesc[campo];
-  return (tabla && descripciones[tabla]) ? descripciones[tabla][valor] || valor : valor;
-}
+    // Usa aquí los nombres exactos de las columnas en la hoja Registro
+    const camposMostrar = [
+      "Cod_Tarjeta",
+      "¿GL?",
+      "Nombre",
+      "Mercado",
+      "Nombre Comercial",
+      "Tipo Infraestructura",
+      "Ubicación del Puesto"
+    ];
 
-document.getElementById('loginForm').addEventListener('submit', e => {
-  e.preventDefault();
-  usuario = document.getElementById('usuario').value;
-  clave = document.getElementById('clave').value;
+    // Mapear nombre de columna a hoja de descripciones para mostrar texto descriptivo
+    const camposDesc = {
+      "Mercado": "mercados",
+      "Tipo Negocio": "tipos_negocio",
+      "Sector": "sectores",
+      "Tipo de Tarjeta": "tipos_tarjeta"
+    };
 
-  fetch(`${scriptURL}?usuario=${usuario}&clave=${clave}&accion=mercados`)
-    .then(r => r.json())
-    .then(data => {
-      if (data.error) return document.getElementById('loginMsg').textContent = data.error;
-      descripciones = data;
-      const mercadoSel = document.getElementById('mercadoSelect');
-      mercadoSel.innerHTML = '';
-      data.mercados && Object.entries(data.mercados).forEach(([cod, nom]) => {
-        const opt = document.createElement('option');
-        opt.value = cod;
-        opt.textContent = nom;
-        mercadoSel.appendChild(opt);
+    function mapearDescripcion(campo, valor) {
+      const tabla = camposDesc[campo];
+      return (tabla && descripciones[tabla]) ? descripciones[tabla][valor] || valor : valor;
+    }
+
+    // Login
+    document.getElementById('loginForm').addEventListener('submit', e => {
+      e.preventDefault();
+      usuario = document.getElementById('usuario').value.trim();
+      clave = document.getElementById('clave').value.trim();
+
+      fetch(`${scriptURL}?usuario=${encodeURIComponent(usuario)}&clave=${encodeURIComponent(clave)}&accion=mercados`)
+        .then(r => r.json())
+        .then(data => {
+          if (data.error) {
+            document.getElementById('loginMsg').textContent = data.error;
+            return;
+          }
+          descripciones = data;
+          const mercadoSel = document.getElementById('mercadoSelect');
+          mercadoSel.innerHTML = '';
+          Object.entries(data.mercados || {}).forEach(([cod, nom]) => {
+            const opt = document.createElement('option');
+            opt.value = cod;
+            opt.textContent = nom;
+            mercadoSel.appendChild(opt);
+          });
+          document.getElementById('loginBox').style.display = 'none';
+          document.getElementById('mercadoBox').style.display = 'block';
+        })
+        .catch(() => {
+          document.getElementById('loginMsg').textContent = "Error al conectar con el servidor.";
+        });
+    });
+
+    // Cargar registros por mercado seleccionado
+    document.getElementById('btnCargar').addEventListener('click', () => {
+      const mercado = document.getElementById('mercadoSelect').value;
+      if (!mercado) {
+        alert('Selecciona un mercado.');
+        return;
+      }
+      fetch(`${scriptURL}?usuario=${encodeURIComponent(usuario)}&clave=${encodeURIComponent(clave)}&mercado=${encodeURIComponent(mercado)}`)
+        .then(r => r.json())
+        .then(data => {
+          if (data.error) {
+            alert(data.error);
+            return;
+          }
+          rol = data.rol;
+          registros = data.registros;
+          pintarTabla();
+          document.getElementById('buscador').value = '';
+        })
+        .catch(() => alert('Error al cargar registros.'));
+    });
+
+    function pintarTabla() {
+      const thead = document.querySelector('#tabla thead');
+      const tbody = document.querySelector('#tabla tbody');
+      thead.innerHTML = '';
+      tbody.innerHTML = '';
+
+      // Header
+      const trH = document.createElement('tr');
+      camposMostrar.forEach(campo => {
+        const th = document.createElement('th');
+        th.textContent = campo;
+        trH.appendChild(th);
       });
-      document.getElementById('loginBox').style.display = 'none';
-      document.getElementById('mercadoBox').style.display = 'block';
-    });
-});
+      thead.appendChild(trH);
 
-document.getElementById('btnCargar').addEventListener('click', () => {
-  const mercado = document.getElementById('mercadoSelect').value;
-  fetch(`${scriptURL}?usuario=${usuario}&clave=${clave}&mercado=${mercado}`)
-    .then(r => r.json())
-    .then(data => {
-      if (data.error) return alert(data.error);
-      rol = data.rol;
-      registros = data.registros;
-      pintarTabla();
-    });
-});
+      // Filas
+      registros.forEach(reg => {
+        const tr = document.createElement('tr');
+        tr.style.cursor = 'pointer';
+        tr.addEventListener('click', () => mostrarDetalle(reg));
+        camposMostrar.forEach(campo => {
+          const td = document.createElement('td');
+          td.textContent = mapearDescripcion(campo, reg[campo]);
+          tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      });
 
-function pintarTabla() {
-  const thead = document.querySelector('#tabla thead');
-  const tbody = document.querySelector('#tabla tbody');
-  thead.innerHTML = '';
-  tbody.innerHTML = '';
-
-  const trH = document.createElement('tr');
-  camposMostrar.forEach(k => {
-    const th = document.createElement('th');
-    th.textContent = k;
-    trH.appendChild(th);
-  });
-  thead.appendChild(trH);
-
-  registros.forEach(reg => {
-    const tr = document.createElement('tr');
-    tr.addEventListener('click', () => mostrarDetalle(reg));
-    camposMostrar.forEach(k => {
-      const td = document.createElement('td');
-      td.textContent = mapearDescripcion(k, reg[k]);
-      tr.appendChild(td);
-    });
-    tbody.appendChild(tr);
-  });
-
-  document.getElementById('tablaBox').style.display = 'block';
-}
-
-function mostrarDetalle(reg) {
-  idActual = reg.id;
-  const form = document.getElementById('detalleForm');
-  form.innerHTML = '';
-
-  Object.entries(reg).forEach(([campo, valor]) => {
-    const label = document.createElement('label');
-    label.textContent = campo;
-
-    let inputOrImg;
-
-    // Mostrar imagen para estos campos
-    if (campo === "Imagen de titular" || campo === "Imagen del puesto") {
-      // Imagen
-      const img = document.createElement('img');
-      img.src = valor || '';
-      img.alt = campo;
-
-      if (rol === 'admin') {
-        // Si admin, mostrar imagen + input para editar URL
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.value = valor || '';
-        input.className = 'form-control mt-2';
-        input.dataset.campo = campo;
-        const container = document.createElement('div');
-        container.appendChild(img);
-        container.appendChild(input);
-        inputOrImg = container;
-      } else {
-        // Solo imagen para lectores
-        inputOrImg = img;
-      }
-    } else {
-      // Campos normales
-      if (rol === 'admin') {
-        inputOrImg = document.createElement('input');
-        inputOrImg.type = 'text';
-        inputOrImg.value = valor;
-        inputOrImg.className = 'form-control';
-        inputOrImg.dataset.campo = campo;
-      } else {
-        inputOrImg = document.createElement('p');
-        inputOrImg.textContent = valor;
-        inputOrImg.className = 'form-control-plaintext';
-      }
+      document.getElementById('tablaBox').style.display = 'block';
+      document.getElementById('msgEstado').textContent = `${registros.length} registros encontrados.`;
     }
 
-    const div = document.createElement('div');
-    div.className = 'col-md-6';
-    div.appendChild(label);
-    div.appendChild(inputOrImg);
-    form.appendChild(div);
-  });
+    function mostrarDetalle(reg) {
+      idActual = reg.id;
+      const form = document.getElementById('detalleForm');
+      form.innerHTML = '';
 
-  const modal = new bootstrap.Modal(document.getElementById('detalleModal'));
-  modal.show();
-}
+      Object.entries(reg).forEach(([campo, valor]) => {
+        const label = document.createElement('label');
+        label.textContent = campo;
+        let input;
+        if (rol === 'admin') {
+          input = document.createElement('input');
+          input.type = 'text';
+          input.value = valor;
+          input.className = 'form-control';
+          input.dataset.campo = campo;
+        } else {
+          input = document.createElement('p');
+          input.textContent = valor;
+          input.className = 'form-control-plaintext';
+        }
+        const div = document.createElement('div');
+        div.className = 'col-md-6';
+        div.appendChild(label);
+        div.appendChild(input);
+        form.appendChild(div);
+      });
 
-document.getElementById('detalleForm').addEventListener('submit', e => {
-  e.preventDefault();
-  if (rol !== 'admin') return;
-  const data = { usuario, clave, id: idActual };
-  [...document.querySelectorAll('#detalleForm [data-campo]')].forEach(el => {
-    data[el.dataset.campo] = el.value;
-  });
-
-  fetch(scriptURL, {
-    method: 'POST',
-    body: JSON.stringify(data),
-    headers: { 'Content-Type': 'application/json' }
-  })
-  .then(r => r.json())
-  .then(resp => {
-    if (resp.error) alert(resp.error);
-    else {
-      const idx = registros.findIndex(r => r.id === idActual);
-      if (idx !== -1) registros[idx] = data;
-      pintarTabla();
-      bootstrap.Modal.getInstance(document.getElementById('detalleModal')).hide();
+      const modal = new bootstrap.Modal(document.getElementById('detalleModal'));
+      modal.show();
     }
-  });
-});
 
-// Buscador
-const buscador = document.getElementById('buscador');
-buscador.addEventListener('input', () => {
-  const texto = normalizar(buscador.value);
-  document.querySelectorAll('#tabla tbody tr').forEach(row => {
-    const visible = [...row.cells].some(td => normalizar(td.textContent).includes(texto));
-    row.style.display = visible ? '' : 'none';
-  });
-});
+    document.getElementById('detalleForm').addEventListener('submit', e => {
+      e.preventDefault();
+      if (rol !== 'admin') return;
+      const data = { usuario, clave, id: idActual };
+      [...document.querySelectorAll('#detalleForm [data-campo]')].forEach(el => {
+        data[el.dataset.campo] = el.value;
+      });
 
-function normalizar(txt) {
-  return txt.toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '');
-}
-</script>
+      fetch(scriptURL, {
+        method: 'POST',
+        body: JSON.stringify(data),
+        headers: { 'Content-Type': 'application/json' }
+      })
+      .then(r => r.json())
+      .then(resp => {
+        if (resp.error) alert(resp.error);
+        else {
+          // Actualiza localmente el registro editado para no recargar todo
+          const idx = registros.findIndex(r => r.id === idActual);
+          if (idx !== -1) registros[idx] = data;
+          pintarTabla();
+          bootstrap.Modal.getInstance(document.getElementById('detalleModal')).hide();
+        }
+      })
+      .catch(() => alert('Error al guardar cambios.'));
+    });
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    // Buscador para filtrar tabla
+    document.getElementById('buscador').addEventListener('input', () => {
+      const texto = normalizar(document.getElementById('buscador').value);
+      document.querySelectorAll('#tabla tbody tr').forEach(row => {
+        const visible = [...row.cells].some(td => normalizar(td.textContent).includes(texto));
+        row.style.display = visible ? '' : 'none';
+      });
+    });
+
+    function normalizar(txt) {
+      return txt.toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '');
+    }
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
