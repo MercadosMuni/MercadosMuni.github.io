@@ -100,11 +100,11 @@
           // Cargar lista mercados en select
           mercadoSelect.innerHTML = '';
           data.mercados.forEach(m => {
-            const option = document.createElement('option');
-            option.value = m;
-            option.textContent = m;
-            mercadoSelect.appendChild(option);
-          });
+          const option = document.createElement('option');
+          option.value = m.codigo;      // valor real para filtrar registros
+          option.textContent = m.nombre; // nombre legible para mostrar al usuario
+          mercadoSelect.appendChild(option);
+        });
 
           loginBox.style.display = 'none';
           mercadoSelectorBox.style.display = 'block';
