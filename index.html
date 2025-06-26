@@ -8,8 +8,6 @@
   <style>
     body { background-color: #f5f5f5; }
     .container { max-width: 1200px; margin-top: 30px; }
-    table input { width: 100%; border: none; background: transparent; }
-    table input:focus { outline: 1px solid #0d6efd; background: #e9f0ff; }
     #detalleModal .modal-body label { font-weight: bold; margin-top: 0.5rem; }
   </style>
 </head>
@@ -41,15 +39,10 @@
       <input id="buscador" class="form-control mb-3" placeholder="Buscar..." />
     </div>
 
-    <!-- Tabla -->
-    <div id="tablaBox" style="display:none">
-      <div class="table-responsive">
-        <table class="table table-striped table-hover" id="tabla">
-          <thead class="table-dark"></thead>
-          <tbody></tbody>
-        </table>
-      </div>
-      <div id="msgEstado" class="text-muted mt-2 text-center small"></div>
+    <!-- Cards -->
+    <div id="cardsBox" style="display:none">
+      <div id="cardsContainer" class="row g-3"></div>
+      <div id="msgEstado" class="text-muted mt-3 text-center small"></div>
     </div>
   </div>
 
@@ -74,24 +67,11 @@
 
   <script>
     const scriptURL = 'https://script.google.com/macros/s/AKfycbx-echRnCqYjR0YgbJthgC0_iSX1hcAMHIDYOwiROAnlFKiJ0bUf4CGbPcB1IF37QreMA/exec';
-
     let usuario = '', clave = '', rol = '', descripciones = {}, registros = [], idActual = null;
 
-    // Usa aquí los nombres exactos de las columnas en la hoja Registro
-    const camposMostrar = [
-      "Cod_Tarjeta",
-      "¿GL?",
-      "Nombre",
-      "Mercado",
-      "Nombre Comercial",
-      "Tipo Infraestructura",
-      "Ubicación del Puesto"
-    ];
-
-    // Mapear nombre de columna a hoja de descripciones para mostrar texto descriptivo
     const camposDesc = {
       "Mercado": "mercados",
-      "Tipo de Negocio": "Tipo_Negocio",
+      "Tipo_Negocio": "Tipo_Negocio",
       "Sector": "sectores",
       "Tipo de Tarjeta": "tipos_tarjeta"
     };
@@ -101,7 +81,6 @@
       return (tabla && descripciones[tabla]) ? descripciones[tabla][valor] || valor : valor;
     }
 
-    // Login
     document.getElementById('loginForm').addEventListener('submit', e => {
       e.preventDefault();
       usuario = document.getElementById('usuario').value.trim();
@@ -131,57 +110,68 @@
         });
     });
 
-    // Cargar registros por mercado seleccionado
     document.getElementById('btnCargar').addEventListener('click', () => {
       const mercado = document.getElementById('mercadoSelect').value;
-      if (!mercado) {
-        alert('Selecciona un mercado.');
-        return;
-      }
+      if (!mercado) return alert('Selecciona un mercado.');
+
       fetch(`${scriptURL}?usuario=${encodeURIComponent(usuario)}&clave=${encodeURIComponent(clave)}&mercado=${encodeURIComponent(mercado)}`)
         .then(r => r.json())
         .then(data => {
-          if (data.error) {
-            alert(data.error);
-            return;
-          }
+          if (data.error) return alert(data.error);
           rol = data.rol;
           registros = data.registros;
-          pintarTabla();
+          pintarCards();
           document.getElementById('buscador').value = '';
         })
         .catch(() => alert('Error al cargar registros.'));
     });
 
-    function pintarTabla() {
-      const thead = document.querySelector('#tabla thead');
-      const tbody = document.querySelector('#tabla tbody');
-      thead.innerHTML = '';
-      tbody.innerHTML = '';
+    function pintarCards() {
+      const container = document.getElementById('cardsContainer');
+      container.innerHTML = '';
 
-      // Header
-      const trH = document.createElement('tr');
-      camposMostrar.forEach(campo => {
-        const th = document.createElement('th');
-        th.textContent = campo;
-        trH.appendChild(th);
-      });
-      thead.appendChild(trH);
-
-      // Filas
       registros.forEach(reg => {
-        const tr = document.createElement('tr');
-        tr.style.cursor = 'pointer';
-        tr.addEventListener('click', () => mostrarDetalle(reg));
-        camposMostrar.forEach(campo => {
-          const td = document.createElement('td');
-          td.textContent = mapearDescripcion(campo, reg[campo]);
-          tr.appendChild(td);
-        });
-        tbody.appendChild(tr);
+        const col = document.createElement('div');
+        col.className = 'col-md-4';
+
+        const card = document.createElement('div');
+        card.className = 'card h-100 shadow-sm';
+        card.style.cursor = 'pointer';
+        card.addEventListener('click', () => mostrarDetalle(reg));
+
+        const imgTitular = document.createElement('img');
+        imgTitular.className = 'card-img-top';
+        imgTitular.src = reg['Imagen del Titular'] || 'https://via.placeholder.com/300x200?text=Sin+imagen';
+        imgTitular.alt = 'Imagen del Titular';
+
+        const imgPuesto = document.createElement('img');
+        imgPuesto.className = 'card-img-top mt-1';
+        imgPuesto.src = reg['Imagen del Puesto'] || 'https://via.placeholder.com/300x200?text=Sin+imagen';
+        imgPuesto.alt = 'Imagen del Puesto';
+
+        const body = document.createElement('div');
+        body.className = 'card-body';
+
+        const titulo = document.createElement('h5');
+        titulo.className = 'card-title';
+        titulo.textContent = reg['Cod_Tarjeta'];
+
+        const nombre = document.createElement('p');
+        nombre.className = 'card-text text-muted';
+        nombre.textContent = reg['Nombre'];
+
+        body.appendChild(titulo);
+        body.appendChild(nombre);
+
+        card.appendChild(imgTitular);
+        card.appendChild(imgPuesto);
+        card.appendChild(body);
+
+        col.appendChild(card);
+        container.appendChild(col);
       });
 
-      document.getElementById('tablaBox').style.display = 'block';
+      document.getElementById('cardsBox').style.display = 'block';
       document.getElementById('msgEstado').textContent = `${registros.length} registros encontrados.`;
     }
 
@@ -194,27 +184,27 @@
         const label = document.createElement('label');
         label.textContent = campo;
         let input;
+
         if (rol === 'admin') {
-  input = document.createElement('input');
-  input.type = 'text';
-  input.value = mapearDescripcion(campo, valor);
-  input.className = 'form-control';
-  input.dataset.campo = campo;
-} else {
-  // Mostrar imagen si es link
-  if (valor && typeof valor === 'string' && valor.startsWith('http') && (valor.includes('.jpg') || valor.includes('.png') || valor.includes('.jpeg'))) {
-    const img = document.createElement('img');
-    img.src = valor;
-    img.alt = campo;
-    img.style.maxWidth = '100%';
-    img.className = 'img-thumbnail';
-    input = img;
-  } else {
-    input = document.createElement('p');
-    input.textContent = mapearDescripcion(campo, valor);
-    input.className = 'form-control-plaintext';
-  }
-}
+          input = document.createElement('input');
+          input.type = 'text';
+          input.value = mapearDescripcion(campo, valor);
+          input.className = 'form-control';
+          input.dataset.campo = campo;
+        } else {
+          if (valor && typeof valor === 'string' && valor.startsWith('http') && valor.match(/\.(jpg|png|jpeg)$/)) {
+            const img = document.createElement('img');
+            img.src = valor;
+            img.alt = campo;
+            img.style.maxWidth = '100%';
+            img.className = 'img-thumbnail';
+            input = img;
+          } else {
+            input = document.createElement('p');
+            input.textContent = mapearDescripcion(campo, valor);
+            input.className = 'form-control-plaintext';
+          }
+        }
 
         const div = document.createElement('div');
         div.className = 'col-md-6';
@@ -223,8 +213,7 @@
         form.appendChild(div);
       });
 
-      const modal = new bootstrap.Modal(document.getElementById('detalleModal'));
-      modal.show();
+      new bootstrap.Modal(document.getElementById('detalleModal')).show();
     }
 
     document.getElementById('detalleForm').addEventListener('submit', e => {
@@ -244,22 +233,20 @@
       .then(resp => {
         if (resp.error) alert(resp.error);
         else {
-          // Actualiza localmente el registro editado para no recargar todo
           const idx = registros.findIndex(r => r.id === idActual);
           if (idx !== -1) registros[idx] = data;
-          pintarTabla();
+          pintarCards();
           bootstrap.Modal.getInstance(document.getElementById('detalleModal')).hide();
         }
       })
       .catch(() => alert('Error al guardar cambios.'));
     });
 
-    // Buscador para filtrar tabla
     document.getElementById('buscador').addEventListener('input', () => {
       const texto = normalizar(document.getElementById('buscador').value);
-      document.querySelectorAll('#tabla tbody tr').forEach(row => {
-        const visible = [...row.cells].some(td => normalizar(td.textContent).includes(texto));
-        row.style.display = visible ? '' : 'none';
+      document.querySelectorAll('#cardsContainer .card').forEach(card => {
+        const visible = card.innerText.toLowerCase().includes(texto);
+        card.parentElement.style.display = visible ? '' : 'none';
       });
     });
 
