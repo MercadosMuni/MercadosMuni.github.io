@@ -8,14 +8,32 @@
   <style>
     body { background-color: #f5f5f5; }
     .container { max-width: 1200px; margin-top: 30px; }
-    #detalleModal .modal-body label { font-weight: bold; margin-top: 0.5rem; }
+    .card-img-top {
+      width: 80px;
+      height: 80px;
+      object-fit: cover;
+      border-radius: 50%;
+      margin: 0 auto;
+      display: block;
+    }
+    .card-img-puesto {
+      width: 100%;
+      height: 100px;
+      object-fit: cover;
+    }
+    .card-body {
+      text-align: center;
+      padding: 0.5rem;
+    }
+    .registro-card {
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <h2 class="text-center mb-4">Panel de Administración</h2>
 
-    <!-- Login -->
     <div id="loginBox">
       <form id="loginForm">
         <div class="mb-3">
@@ -31,7 +49,6 @@
       </form>
     </div>
 
-    <!-- Filtro de mercado -->
     <div id="mercadoBox" style="display:none">
       <label>Seleccionar Mercado:</label>
       <select id="mercadoSelect" class="form-select mb-3" style="max-width:300px"></select>
@@ -39,10 +56,9 @@
       <input id="buscador" class="form-control mb-3" placeholder="Buscar..." />
     </div>
 
-    <!-- Cards -->
     <div id="cardsBox" style="display:none">
-      <div id="cardsContainer" class="row g-3"></div>
-      <div id="msgEstado" class="text-muted mt-3 text-center small"></div>
+      <div class="row" id="cardsContainer"></div>
+      <div id="msgEstado" class="text-muted mt-2 text-center small"></div>
     </div>
   </div>
 
@@ -104,73 +120,53 @@
           });
           document.getElementById('loginBox').style.display = 'none';
           document.getElementById('mercadoBox').style.display = 'block';
-        })
-        .catch(() => {
-          document.getElementById('loginMsg').textContent = "Error al conectar con el servidor.";
         });
     });
 
     document.getElementById('btnCargar').addEventListener('click', () => {
       const mercado = document.getElementById('mercadoSelect').value;
       if (!mercado) return alert('Selecciona un mercado.');
-
       fetch(`${scriptURL}?usuario=${encodeURIComponent(usuario)}&clave=${encodeURIComponent(clave)}&mercado=${encodeURIComponent(mercado)}`)
         .then(r => r.json())
         .then(data => {
           if (data.error) return alert(data.error);
           rol = data.rol;
           registros = data.registros;
-          pintarCards();
-          document.getElementById('buscador').value = '';
-        })
-        .catch(() => alert('Error al cargar registros.'));
+          mostrarCards();
+        });
     });
 
-    function pintarCards() {
+    function mostrarCards() {
       const container = document.getElementById('cardsContainer');
       container.innerHTML = '';
-
       registros.forEach(reg => {
         const col = document.createElement('div');
-        col.className = 'col-md-4';
+        col.className = 'col-sm-6 col-md-4 col-lg-3 mb-3';
 
         const card = document.createElement('div');
-        card.className = 'card h-100 shadow-sm';
-        card.style.cursor = 'pointer';
+        card.className = 'card registro-card';
         card.addEventListener('click', () => mostrarDetalle(reg));
 
         const imgTitular = document.createElement('img');
         imgTitular.className = 'card-img-top';
-        imgTitular.src = reg['Imagen del Titular'] || 'https://via.placeholder.com/300x200?text=Sin+imagen';
-        imgTitular.alt = 'Imagen del Titular';
+        imgTitular.src = reg['Imagen del Titular'] || 'https://via.placeholder.com/80';
+        imgTitular.alt = 'Titular';
 
         const imgPuesto = document.createElement('img');
-        imgPuesto.className = 'card-img-top mt-1';
-        imgPuesto.src = reg['Imagen del Puesto'] || 'https://via.placeholder.com/300x200?text=Sin+imagen';
-        imgPuesto.alt = 'Imagen del Puesto';
+        imgPuesto.className = 'card-img-puesto';
+        imgPuesto.src = reg['Imagen del Puesto'] || 'https://via.placeholder.com/200x100';
+        imgPuesto.alt = 'Puesto';
 
         const body = document.createElement('div');
         body.className = 'card-body';
-
-        const titulo = document.createElement('h5');
-        titulo.className = 'card-title';
-        titulo.textContent = reg['Cod_Tarjeta'];
-
-        const nombre = document.createElement('p');
-        nombre.className = 'card-text text-muted';
-        nombre.textContent = reg['Nombre'];
-
-        body.appendChild(titulo);
-        body.appendChild(nombre);
+        body.innerHTML = `<strong>${reg['Cod_Tarjeta']}</strong><br>${reg['Nombre']}`;
 
         card.appendChild(imgTitular);
         card.appendChild(imgPuesto);
         card.appendChild(body);
-
         col.appendChild(card);
         container.appendChild(col);
       });
-
       document.getElementById('cardsBox').style.display = 'block';
       document.getElementById('msgEstado').textContent = `${registros.length} registros encontrados.`;
     }
@@ -179,12 +175,10 @@
       idActual = reg.id;
       const form = document.getElementById('detalleForm');
       form.innerHTML = '';
-
       Object.entries(reg).forEach(([campo, valor]) => {
         const label = document.createElement('label');
         label.textContent = campo;
         let input;
-
         if (rol === 'admin') {
           input = document.createElement('input');
           input.type = 'text';
@@ -192,27 +186,24 @@
           input.className = 'form-control';
           input.dataset.campo = campo;
         } else {
-          if (valor && typeof valor === 'string' && valor.startsWith('http') && valor.match(/\.(jpg|png|jpeg)$/)) {
+          if (valor && valor.startsWith('http') && (valor.includes('.jpg') || valor.includes('.png'))) {
             const img = document.createElement('img');
             img.src = valor;
-            img.alt = campo;
-            img.style.maxWidth = '100%';
             img.className = 'img-thumbnail';
+            img.style.maxWidth = '100%';
             input = img;
           } else {
             input = document.createElement('p');
-            input.textContent = mapearDescripcion(campo, valor);
             input.className = 'form-control-plaintext';
+            input.textContent = mapearDescripcion(campo, valor);
           }
         }
-
         const div = document.createElement('div');
         div.className = 'col-md-6';
         div.appendChild(label);
         div.appendChild(input);
         form.appendChild(div);
       });
-
       new bootstrap.Modal(document.getElementById('detalleModal')).show();
     }
 
@@ -223,29 +214,24 @@
       [...document.querySelectorAll('#detalleForm [data-campo]')].forEach(el => {
         data[el.dataset.campo] = el.value;
       });
-
       fetch(scriptURL, {
         method: 'POST',
         body: JSON.stringify(data),
         headers: { 'Content-Type': 'application/json' }
-      })
-      .then(r => r.json())
-      .then(resp => {
-        if (resp.error) alert(resp.error);
-        else {
+      }).then(r => r.json()).then(resp => {
+        if (!resp.error) {
           const idx = registros.findIndex(r => r.id === idActual);
           if (idx !== -1) registros[idx] = data;
-          pintarCards();
+          mostrarCards();
           bootstrap.Modal.getInstance(document.getElementById('detalleModal')).hide();
-        }
-      })
-      .catch(() => alert('Error al guardar cambios.'));
+        } else alert(resp.error);
+      });
     });
 
     document.getElementById('buscador').addEventListener('input', () => {
       const texto = normalizar(document.getElementById('buscador').value);
       document.querySelectorAll('#cardsContainer .card').forEach(card => {
-        const visible = card.innerText.toLowerCase().includes(texto);
+        const visible = normalizar(card.innerText).includes(texto);
         card.parentElement.style.display = visible ? '' : 'none';
       });
     });
