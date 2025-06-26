@@ -29,7 +29,7 @@
     .titular-info {
       display: flex;
       align-items: center;
-      justify-content: center;
+      justify-content: flex-start;
       margin-bottom: 0.5rem;
       text-align: left;
     }
@@ -153,7 +153,7 @@
 
         const card = document.createElement('div');
         card.className = 'card registro-card';
-        card.addEventListener('click', () => mostrarDetalle(reg));
+        card.setAttribute('data-id', reg.id); // Añade data-id para encontrar el registro luego
 
         const imgPuesto = document.createElement('img');
         imgPuesto.className = 'card-img-puesto';
@@ -178,6 +178,7 @@
         body.appendChild(info);
         card.appendChild(imgPuesto);
         card.appendChild(body);
+        card.addEventListener('click', () => mostrarDetalle(reg)); // Asegura la asignación
         col.appendChild(card);
         container.appendChild(col);
       });
